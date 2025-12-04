@@ -392,13 +392,9 @@ append_cached_vrp(STACK_OF(ROAIPAddress) *addresses, struct vrp *vrp)
 	if (num_bits > 0)
 		unused_bits = 8 - num_bits;
 
-	if (!ASN1_BIT_STRING_set(ripa->address, vrp->addr.addr, num_bytes))
+	if (!ASN1_BIT_STRING_set1(ripa->address, vrp->addr.addr, num_bytes,
+	    unused_bits))
 		errx(1, "ASN1_BIT_STRING_set");
-
-	/* ip_addr_parse() handles unused bits, no need to clear them here. */
-	ripa->address->flags |= ASN1_STRING_FLAG_BITS_LEFT | unused_bits;
-
-	/* XXX - assert that unused bits are zero */
 
 	if (vrp->maxlength > vrp->addr.prefixlen) {
 		if ((ripa->maxLength = ASN1_INTEGER_new()) == NULL)
