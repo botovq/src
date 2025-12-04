@@ -173,15 +173,15 @@ ip_addr_parse(const ASN1_BIT_STRING *abs,
     enum afi afi, const char *fn, struct ip_addr *addr)
 {
 	const unsigned char *data;
-	int length, unused = 0;
+	size_t length;
+	int unused = 0;
 
 	data = ASN1_STRING_get0_data(abs);
-	length = ASN1_STRING_length(abs);
 
-	/* Weird OpenSSL-ism to get unused bit count. */
-
-	if ((abs->flags & ASN1_STRING_FLAG_BITS_LEFT))
-		unused = abs->flags & 0x07;
+	if (!ASN1_BIT_STRING_get_length(abs, &length, &unused)) {
+		warnx("%s: invalid bit string in IP address", fn);
+		return 0;
+	}
 
 	if (length == 0 && unused != 0) {
 		warnx("%s: RFC 3779 section 2.2.3.8: "
