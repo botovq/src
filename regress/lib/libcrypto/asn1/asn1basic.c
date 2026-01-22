@@ -66,12 +66,17 @@ const uint8_t asn1_bit_string_primitive[] = {
 	0x04, 0x0a, 0x3b, 0x5f, 0x29, 0x1c, 0xd0,
 };
 
+const uint8_t asn1_bit_string_primitive_no_bits_left_flag[] = {
+	0x03, 0x07,
+	0x00, 0x0a, 0x3b, 0x5f, 0x29, 0x1c, 0xd0,
+};
+
 static const uint8_t asn1_bit_string_trailing_zeroes[] = {
 	0x04, 0x00
 };
 
 static const uint8_t asn1_bit_string_trailing_zeroes_encoded[] = {
-	0x03, 0x02, 0x02, 0x04,
+	0x03, 0x03, 0x00, 0x04, 0x00,
 };
 
 static int
@@ -84,10 +89,64 @@ asn1_bit_string_test(void)
 	int bit, i, len;
 	int failed = 1;
 
+	/* First test primitive encoding with ASN1_STRING_FLAG_BITS_LEFT. */
+
 	if ((abs = ASN1_BIT_STRING_new()) == NULL) {
 		fprintf(stderr, "FAIL: ASN1_BIT_STRING_new() == NULL\n");
 		goto failed;
 	}
+
+	/* XXX - use ASN1_BIT_STRING_set1() once it's available. */
+	if (!ASN1_BIT_STRING_set(abs, bs, sizeof(bs))) {
+		fprintf(stderr, "FAIL: failed to set bit string\n");
+		goto failed;
+	}
+	abs->flags |= ASN1_STRING_FLAG_BITS_LEFT | 0x04;
+
+	if ((len = i2d_ASN1_BIT_STRING(abs, NULL)) < 0) {
+		fprintf(stderr, "FAIL: i2d_ASN1_BIT_STRING with NULL\n");
+		goto failed;
+	}
+	if ((p = malloc(len)) == NULL)
+		errx(1, "malloc");
+	memset(p, 0xbd, len);
+	pp = p;
+	if ((i2d_ASN1_BIT_STRING(abs, &pp)) != len) {
+		fprintf(stderr, "FAIL: i2d_ASN1_BIT_STRING\n");
+		goto failed;
+	}
+	if (!asn1_compare_bytes("BIT_STRING", p, len, asn1_bit_string_primitive,
+	    sizeof(asn1_bit_string_primitive)))
+		goto failed;
+	if (pp != p + len) {
+		fprintf(stderr, "FAIL: i2d_ASN1_BIT_STRING pp = %p, want %p\n",
+		    pp, p + len);
+		goto failed;
+	}
+
+	/* Test primitive decoding. */
+	q = p;
+	if (d2i_ASN1_BIT_STRING(&abs, &q, len) == NULL) {
+		fprintf(stderr, "FAIL: d2i_ASN1_BIT_STRING primitive\n");
+		goto failed;
+	}
+	if (!asn1_compare_bytes("BIT_STRING primitive data", abs->data, abs->length,
+	    bs, sizeof(bs)))
+		goto failed;
+	if (q != p + len) {
+		fprintf(stderr, "FAIL: d2i_ASN1_BIT_STRING q = %p, want %p\n",
+		    q, p + len);
+		goto failed;
+	}
+
+	/* Now repeat the above test without ASN1_STRING_FLAG_BITS_LEFT. */
+
+	ASN1_BIT_STRING_free(abs);
+	if ((abs = ASN1_BIT_STRING_new()) == NULL) {
+		fprintf(stderr, "FAIL: ASN1_BIT_STRING_new() == NULL\n");
+		goto failed;
+	}
+	/* XXX - use ASN1_STRING_set() on removing ASN1_BIT_STRING_set(). */
 	if (!ASN1_BIT_STRING_set(abs, bs, sizeof(bs))) {
 		fprintf(stderr, "FAIL: failed to set bit string\n");
 		goto failed;
@@ -105,8 +164,9 @@ asn1_bit_string_test(void)
 		fprintf(stderr, "FAIL: i2d_ASN1_BIT_STRING\n");
 		goto failed;
 	}
-	if (!asn1_compare_bytes("BIT_STRING", p, len, asn1_bit_string_primitive,
-	    sizeof(asn1_bit_string_primitive)))
+	if (!asn1_compare_bytes("BIT_STRING", p, len,
+	    asn1_bit_string_primitive_no_bits_left_flag,
+	    sizeof(asn1_bit_string_primitive_no_bits_left_flag)))
 		goto failed;
 	if (pp != p + len) {
 		fprintf(stderr, "FAIL: i2d_ASN1_BIT_STRING pp = %p, want %p\n",
@@ -238,6 +298,8 @@ static const uint8_t asn1_bit_string_10010[] = {
 };
 
 static const uint8_t asn1_bit_string_zeroes[64] = { 0 };
+
+static const uint8_t asn1_bit_string_zeroes_encoded[67] = { 0x03, 0x41, };
 
 static int
 asn1_bit_string_set_bit_test(void)
@@ -653,7 +715,7 @@ asn1_bit_string_set_bit_test(void)
 		goto failed;
 	}
 	if (!asn1_compare_bytes("BIT STRING all zeroes", der, der_len,
-	    asn1_bit_string_empty, sizeof(asn1_bit_string_empty)))
+	    asn1_bit_string_zeroes_encoded, sizeof(asn1_bit_string_zeroes_encoded)))
 		goto failed;
 
 	failed = 0;
