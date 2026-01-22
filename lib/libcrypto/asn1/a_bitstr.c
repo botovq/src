@@ -151,6 +151,23 @@ ASN1_BIT_STRING_set_bit(ASN1_BIT_STRING *a, int n, int value)
 	while (a->length > 0 && a->data[a->length - 1] == 0)
 		a->length--;
 
+	if (a->length > 0) {
+		uint8_t u8 = a->data[a->length - 1];
+		uint8_t unused_bits = 7;
+
+		/* Only keep least significant bit; count trailing zeroes. */
+		u8 &= 0x100 - u8;
+		if ((u8 & 0x0f) != 0)
+			unused_bits -= 4;
+		if ((u8 & 0x33) != 0)
+			unused_bits -= 2;
+		if ((u8 & 0x55) != 0)
+			unused_bits -= 1;
+
+		if (!asn1_abs_set_unused_bits(a, unused_bits))
+			return 0;
+	}
+
 	return 1;
 }
 LCRYPTO_ALIAS(ASN1_BIT_STRING_set_bit);
@@ -178,64 +195,38 @@ LCRYPTO_ALIAS(ASN1_BIT_STRING_get_bit);
 int
 i2c_ASN1_BIT_STRING(ASN1_BIT_STRING *a, unsigned char **pp)
 {
-	int ret, j, bits, len;
-	unsigned char *p, *d;
+	unsigned char *p;
+	unsigned char bits = 0;
+	int len;
+	int ret = 0;
 
 	if (a == NULL)
-		return 0;
+		goto err;
 
-	len = a->length;
-	if (len > 0) {
-		if (a->flags & ASN1_STRING_FLAG_BITS_LEFT) {
-			bits = (int)a->flags & 0x07;
-		} else {
-			j = 0;
-			for (; len > 0; len--) {
-				if (a->data[len - 1])
-					break;
-			}
-			if (len > 0)
-				j = a->data[len - 1];
-			if (j & 0x01)
-				bits = 0;
-			else if (j & 0x02)
-				bits = 1;
-			else if (j & 0x04)
-				bits = 2;
-			else if (j & 0x08)
-				bits = 3;
-			else if (j & 0x10)
-				bits = 4;
-			else if (j & 0x20)
-				bits = 5;
-			else if (j & 0x40)
-				bits = 6;
-			else if (j & 0x80)
-				bits = 7;
-			else
-				bits = 0;
-		}
-	} else
-		bits = 0;
-
-	if (len > INT_MAX - 1)
-		return 0;
-
-	ret = len + 1;
+	if ((len = a->length) > INT_MAX - 1)
+		goto err;
 
 	if (pp == NULL)
-		return ret;
+		goto done;
+
+	/* XXX - call ASN1_BIT_STRING_get_length instead? */
+	if (len > 0 && (a->flags & ASN1_STRING_FLAG_BITS_LEFT) != 0)
+		bits = a->flags & 0x07;
 
 	p = *pp;
 
-	*(p++) = (unsigned char)bits;
-	d = a->data;
+	*(p++) = bits;
 	if (len > 0) {
-		memcpy(p, d, len);
+		memcpy(p, a->data, len);
 		p += len;
 		p[-1] &= 0xff << bits;
 	}
 	*pp = p;
+
+ done:
+	ret = len + 1;
+
+ err:
 	return ret;
 }
 
