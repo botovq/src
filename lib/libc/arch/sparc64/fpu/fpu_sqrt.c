@@ -187,8 +187,7 @@
  * this, so we have some justification in assuming it.
  */
 struct fpn *
-__fpu_sqrt(fe)
-	struct fpemu *fe;
+__fpu_sqrt(struct fpemu *fe)
 {
 	struct fpn *x = &fe->fe_f1;
 	u_int bit, q, tt;

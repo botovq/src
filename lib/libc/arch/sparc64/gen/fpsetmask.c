@@ -8,8 +8,7 @@
 #include <ieeefp.h>
 
 fp_except
-fpsetmask(mask)
-	fp_except mask;
+fpsetmask(fp_except mask)
 {
 	fp_except old;
 	fp_except new;

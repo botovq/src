@@ -61,8 +61,7 @@
 #include "fpu_extern.h"
 
 struct fpn *
-__fpu_add(fe)
-	struct fpemu *fe;
+__fpu_add(struct fpemu *fe)
 {
 	struct fpn *x = &fe->fe_f1, *y = &fe->fe_f2, *r;
 	u_int r0, r1, r2, r3;

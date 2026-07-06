@@ -153,8 +153,7 @@
  */
 
 struct fpn *
-__fpu_div(fe)
-	struct fpemu *fe;
+__fpu_div(struct fpemu *fe)
 {
 	struct fpn *x = &fe->fe_f1, *y = &fe->fe_f2;
 	u_int q, bit;

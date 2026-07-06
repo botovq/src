@@ -8,8 +8,7 @@
 #include <ieeefp.h>
 
 fp_rnd
-fpsetround(rnd_dir)
-	fp_rnd rnd_dir;
+fpsetround(fp_rnd rnd_dir)
 {
 	fp_rnd old;
 	fp_rnd new;
