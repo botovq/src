@@ -2316,6 +2316,9 @@ static uint64_t computeFlags(Ctx &ctx, uint64_t flags) {
   if (ctx.arg.omagic)
     return PF_R | PF_W | PF_X;
 #ifdef __OpenBSD__
+  if (ctx.arg.emachine == EM_SPARCV9 && ctx.arg.pie && !ctx.arg.shared &&
+      ctx.sharedFiles.empty() && (flags & PF_X))
+    return flags | PF_R;
   if (ctx.arg.emachine == EM_SPARCV9 && (flags & PF_X) && (flags & PF_W))
     return flags;
 #endif
