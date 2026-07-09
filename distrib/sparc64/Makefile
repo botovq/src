@@ -1,6 +1,6 @@
 #	$OpenBSD: Makefile,v 1.13 2019/04/30 19:20:22 deraadt Exp $
 
-SUBDIR+= ramdisk ramdiskB miniroot
+SUBDIR+=
 
 .if	make(obj) || make(cleandir) || make(clean)
 SUBDIR+= iso
