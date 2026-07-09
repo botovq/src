@@ -27,7 +27,7 @@ SUBDIR += verify
 
 # Things that take a long time should go below here. 
 SUBDIR += openssl-ruby
-SUBDIR += rust-openssl
+#SUBDIR += rust-openssl
 SUBDIR += tlsfuzzer
 SUBDIR += interop
 
