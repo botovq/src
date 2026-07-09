@@ -1734,17 +1734,21 @@ void RelocationBaseSection::finalizeContents() {
 
 void DynamicReloc::finalize(Ctx &ctx, SymbolTableBaseSection *symt) {
   r_offset = getOffset();
-  if (ctx.arg.emachine == EM_SPARCV9 && type == R_SPARC_UA64 &&
-      needsDynSymIndex() && !sym->isPreemptible) {
-    if (r_offset % 8 != 0) {
+  bool wasSparcUA64 = ctx.arg.emachine == EM_SPARCV9 && type == R_SPARC_UA64;
+  if (wasSparcUA64) {
+    if (r_offset % 8 == 0) {
+      type = R_SPARC_64;
+    } else if (needsDynSymIndex() && !sym->isPreemptible) {
       Err(ctx) << "R_SPARC_UA64 relocation at offset " << r_offset
                << " against non-preemptible symbol " << sym
                << " is not 8-byte aligned";
-    } else {
-      type = ctx.target->relativeRel;
-      isAgainstSymbol = false;
-      expr = R_ABS;
     }
+  }
+  if (wasSparcUA64 && type == R_SPARC_64 && needsDynSymIndex() &&
+      !sym->isPreemptible) {
+    type = ctx.target->relativeRel;
+    isAgainstSymbol = false;
+    expr = R_ABS;
   }
   r_sym = getSymIndex(symt);
   addend = computeAddend(ctx);
