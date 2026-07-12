@@ -81,6 +81,7 @@ class SparcAsmParser : public MCTargetAsmParser {
   bool parseInstruction(ParseInstructionInfo &Info, StringRef Name,
                         SMLoc NameLoc, OperandVector &Operands) override;
   ParseStatus parseDirective(AsmToken DirectiveID) override;
+  bool parsePrimaryExpr(const MCExpr *&Res, SMLoc &EndLoc) override;
 
   unsigned validateTargetOperandClass(MCParsedAsmOperand &Op,
                                       unsigned Kind) override;
@@ -1746,6 +1747,16 @@ bool SparcAsmParser::matchSparcAsmModifiers(const MCExpr *&EVal,
 
   EVal = adjustPICRelocation(VK, subExpr);
   return true;
+}
+
+bool SparcAsmParser::parsePrimaryExpr(const MCExpr *&Res, SMLoc &EndLoc) {
+  if (Parser.getTok().is(AsmToken::Percent)) {
+    Parser.Lex();
+    if (matchSparcAsmModifiers(Res, EndLoc))
+      return false;
+    return true;
+  }
+  return Parser.parsePrimaryExpr(Res, EndLoc, nullptr);
 }
 
 bool SparcAsmParser::isPossibleExpression(const AsmToken &Token) {
